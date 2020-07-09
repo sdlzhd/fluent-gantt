@@ -1,0 +1,6 @@
+
+W
+java:S1191"5Use classes from the Java API instead of Sun classes.(´îÊùøÿÿÿÿ8²ªüè².
+X	java:S110"<This class has 6 parents which is greater than 5 authorized.(ÁÁ¥8°¯ùè².
+_
+java:S1128"=Remove this unused import 'javafx.beans.value.WritableValue'.(¬¤æúÿÿÿÿ8ü‰é².
