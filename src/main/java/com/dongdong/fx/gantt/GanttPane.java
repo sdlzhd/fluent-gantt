@@ -7,6 +7,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.*;
 import javafx.scene.control.Control;
@@ -15,7 +16,7 @@ import javafx.scene.text.Font;
 
 import java.util.Date;
 
-public class GanttPane<T> extends Control {
+public class GanttPane<S> extends Control {
 
     /***************************************************************************
      *                                                                         *
@@ -24,11 +25,12 @@ public class GanttPane<T> extends Control {
      **************************************************************************/
 
     public GanttPane() {
-        this.items = FXCollections.observableArrayList();
+        this(FXCollections.observableArrayList());
     }
 
-    public GanttPane(ObservableList<T> items) {
+    public GanttPane(ObservableList<S> items) {
         this.items = items;
+        this.rows.addListener(rowsListener);
     }
 
     /***************************************************************************
@@ -40,12 +42,12 @@ public class GanttPane<T> extends Control {
     /**
      * 甘特图中所有的行
      */
-    private final ObservableList<GanttRow<T>> rows = FXCollections.observableArrayList();
+    private final ObservableList<GanttRow<S>> rows = FXCollections.observableArrayList();
 
     /**
      * 甘特图中的实体对象列表
      */
-    private final ObservableList<T> items;
+    private final ObservableList<S> items;
 
     /**
      * Dock栏的显示位置，支持的显示位置见{@link DockPos}
@@ -71,11 +73,11 @@ public class GanttPane<T> extends Control {
      */
     private BooleanProperty showCrosshair;
 
-    public ObservableList<T> getItems() {
+    public ObservableList<S> getItems() {
         return items;
     }
 
-    public ObservableList<GanttRow<T>> getRows() {
+    public ObservableList<GanttRow<S>> getRows() {
         return rows;
     }
 
@@ -178,10 +180,29 @@ public class GanttPane<T> extends Control {
         return showCrosshair().get();
     }
 
-    @Override
-    protected Skin<?> createDefaultSkin() {
-        return new GanttPaneSkin<T>(this);
-    }
+    /***************************************************************************
+     *                                                                         *
+     * Callbacks and Events                                                    *
+     *                                                                         *
+     **************************************************************************/
+
+    private final ListChangeListener<GanttRow<S>> rowsListener = c -> {
+
+        while (c.next()) {
+            if (c.wasRemoved()) {
+                for (GanttRow<S> r : c.getRemoved()) {
+                    r.setGanttPane(null);
+                }
+            }
+
+            if (c.wasAdded()) {
+                for (GanttRow<S> r : c.getAddedSubList()) {
+                    r.setGanttPane(GanttPane.this);
+                }
+            }
+        }
+    };
+
 
     /***************************************************************************
      *                                                                         *
@@ -189,7 +210,10 @@ public class GanttPane<T> extends Control {
      *                                                                         *
      **************************************************************************/
 
-
+    @Override
+    protected Skin<?> createDefaultSkin() {
+        return new GanttPaneSkin<S>(this);
+    }
 
     private static final CssMetaData<GanttPane, DockPos> DOCK_POS =
             new CssMetaData<GanttPane, DockPos>("-fx-dock-position",

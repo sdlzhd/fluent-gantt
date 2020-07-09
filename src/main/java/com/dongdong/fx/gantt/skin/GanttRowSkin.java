@@ -3,12 +3,12 @@ package com.dongdong.fx.gantt.skin;
 import com.dongdong.fx.gantt.GanttRow;
 import javafx.scene.control.SkinBase;
 
-public class GanttRowSkin<T> extends SkinBase<GanttRow<T>> {
+public class GanttRowSkin<S, T> extends SkinBase<GanttRow<S, T>> {
 
 
 
 
-    public GanttRowSkin(GanttRow<T> control) {
+    public GanttRowSkin(GanttRow<S, T> control) {
         super(control);
     }
 }
