@@ -1,0 +1,10 @@
+.gantt-pane > .list-view {
+    -fx-background-insets: 0;
+}
+.dock-button {
+    -fx-pref-width: 100px;
+    -fx-pref-height: 42px;
+    -fx-background-color: #333333;
+    -fx-alignment: center;
+    -fx-text-fill: white;
+}

@@ -2,21 +2,61 @@ package com.dongdong.fx.gantt;
 
 import com.dongdong.fx.gantt.skin.GanttPaneSkin;
 import com.sun.javafx.css.converters.EnumConverter;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
+import com.sun.javafx.css.converters.SizeConverter;
+import javafx.beans.property.*;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.*;
-import javafx.scene.control.Control;
-import javafx.scene.control.Skin;
+import javafx.scene.control.*;
 import javafx.scene.text.Font;
+import javafx.util.Callback;
+import javafx.util.StringConverter;
 
-import java.util.Date;
+import java.util.*;
 
-public class GanttPane<S> extends Control {
+/**
+ * 甘特图面板
+ * @param <R> 甘特行的实体类
+ * @param <T> 甘特节点的实体类
+ */
+public class GanttPane<R, T> extends Control {
+
+    private static <R> StringConverter<R> defaultStringConverter() {
+        return new StringConverter<R>() {
+            @Override public String toString(R t) {
+                return t == null ? null : t.toString();
+            }
+
+            @SuppressWarnings("unchecked")
+            @Override public R fromString(String string) {
+                return (R) string;
+            }
+        };
+    }
+
+    private static <R, T> Callback<GanttRow<R, T>, DockButton<R>> defaultDockFactory() {
+        return DockButton::new;
+    }
+
+    private static Date today() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        return calendar.getTime();
+    }
+
+    private static Date nextDay() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        calendar.set(Calendar.HOUR_OF_DAY, 23);
+        calendar.set(Calendar.MINUTE, 59);
+        calendar.set(Calendar.SECOND, 59);
+        return calendar.getTime();
+    }
 
     /***************************************************************************
      *                                                                         *
@@ -28,9 +68,10 @@ public class GanttPane<S> extends Control {
         this(FXCollections.observableArrayList());
     }
 
-    public GanttPane(ObservableList<S> items) {
+    public GanttPane(ObservableList<T> items) {
         this.items = items;
         this.rows.addListener(rowsListener);
+        this.items.addListener(itemsListener);
     }
 
     /***************************************************************************
@@ -39,20 +80,75 @@ public class GanttPane<S> extends Control {
      *                                                                         *
      **************************************************************************/
 
+    private final Map<R, List<T>> rowItemsMap = new HashMap<>();
+
     /**
      * 甘特图中所有的行
      */
-    private final ObservableList<GanttRow<S>> rows = FXCollections.observableArrayList();
+    private final ObservableList<R> rows = FXCollections.observableArrayList();
+
+    /**
+     * 行对象转换为行标题
+     */
+    private final ObjectProperty<StringConverter<R>> rowConverter =
+            new SimpleObjectProperty<>(this, "rowConverter", GanttPane.defaultStringConverter());
+
+    private final ObjectProperty<Callback<GanttRow<R, T>, DockButton<R>>> dockFactory =
+            new SimpleObjectProperty<>(this, "dockFactory", defaultDockFactory());
+    public final ObjectProperty<Callback<GanttRow<R, T>, DockButton<R>>> dockFactoryProperty() {
+        return dockFactory;
+    }
+    public final void setDockFactory(Callback<GanttRow<R, T>, DockButton<R>> value) {
+        if (value == null) {
+            throw new IllegalArgumentException("The RowFactory is not allowed to be null");
+        }
+        dockFactoryProperty().set(value);
+    }
+    public final Callback<GanttRow<R, T>, DockButton<R>> getDockFactory() {
+        return dockFactory.get();
+    }
 
     /**
      * 甘特图中的实体对象列表
      */
-    private final ObservableList<S> items;
+    private final ObservableList<T> items;
+
+    /**
+     * 甘特图界面的标题，显示在DockButton的顶端
+     */
+    private final StringProperty title = new SimpleStringProperty(this, "title");
+    public final StringProperty titleProperty() {
+        return title;
+    }
+    public final String getTitle() {
+        return titleProperty().getValue();
+    }
+    public final void setTitle(String value) {
+        titleProperty().setValue(value);
+    }
+
+
+    private final ObjectProperty<Callback<T, R>> valueBindFactory = new SimpleObjectProperty<>(this, "valueBindFactory");
+    public ObjectProperty<Callback<T, R>> valueBindFactoryProperty() {
+        return valueBindFactory;
+    }
+    public Callback<T, R> getValueBindFactory() {
+        return valueBindFactoryProperty().getValue();
+    }
+    public void setValueBindFactory(Callback<T, R> factory) {
+        valueBindFactory.setValue(factory);
+    }
+
 
     /**
      * Dock栏的显示位置，支持的显示位置见{@link DockPos}
      */
     private ObjectProperty<DockPos> dockPosition;
+
+    /**
+     * 甘特行高度
+     */
+    private DoubleProperty rowHeight;
 
     /**
      * 是否显示时间线
@@ -73,12 +169,57 @@ public class GanttPane<S> extends Control {
      */
     private BooleanProperty showCrosshair;
 
-    public ObservableList<S> getItems() {
+    public ObservableList<T> getItems() {
         return items;
     }
 
-    public ObservableList<GanttRow<S>> getRows() {
+    public ObservableList<R> getRows() {
         return rows;
+    }
+
+    public ObjectProperty<StringConverter<R>> rowConverterProperty() {
+        return rowConverter;
+    }
+
+    public StringConverter<R> getRowConverter() {
+        return rowConverter.get();
+    }
+
+    public void setRowConverter(StringConverter<R> converter) {
+        rowConverter.setValue(converter);
+    }
+
+
+
+    public DoubleProperty rowHeightProperty() {
+        if (rowHeight == null) {
+            rowHeight = new StyleableDoubleProperty(42.0d) {
+
+                @Override
+                public CssMetaData<GanttPane<?, ?>,Number> getCssMetaData() {
+                    return ROW_HEIGHT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return GanttPane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "rowHeight";
+                }
+            };
+        }
+        return rowHeight;
+    }
+
+    public double getRowHeight() {
+        return rowHeightProperty().get();
+    }
+
+    public void setRowHeight(double rowHeight) {
+        this.rowHeightProperty().set(rowHeight);
     }
 
     public ObjectProperty<DockPos> dockPositionProperty() {
@@ -137,7 +278,7 @@ public class GanttPane<S> extends Control {
 
     public ObjectProperty<Date> startTimeProperty() {
         if (startTime == null) {
-            startTime = new SimpleObjectProperty<Date>();
+            startTime = new SimpleObjectProperty<>(this, "startTime", today());
         }
         return startTime;
     }
@@ -152,7 +293,7 @@ public class GanttPane<S> extends Control {
 
     public ObjectProperty<Date> endTimeProperty() {
         if (endTime == null) {
-            endTime = new SimpleObjectProperty<Date>();
+            endTime = new SimpleObjectProperty<>(this, "endTime", nextDay());
         }
         return endTime;
     }
@@ -186,18 +327,42 @@ public class GanttPane<S> extends Control {
      *                                                                         *
      **************************************************************************/
 
-    private final ListChangeListener<GanttRow<S>> rowsListener = c -> {
-
+    private final ListChangeListener<T> itemsListener = c -> {
         while (c.next()) {
             if (c.wasRemoved()) {
-                for (GanttRow<S> r : c.getRemoved()) {
-                    r.setGanttPane(null);
+                for (T t : c.getRemoved()) {
+                    R row = getValueBindFactory().call(t);
+                    if (rowItemsMap.get(row) != null) {
+                        rowItemsMap.get(row).remove(t);
+                    }
                 }
             }
 
             if (c.wasAdded()) {
-                for (GanttRow<S> r : c.getAddedSubList()) {
-                    r.setGanttPane(GanttPane.this);
+                for (T t : c.getAddedSubList()) {
+                    R row = getValueBindFactory().call(t);
+                    if (rowItemsMap.get(row) != null) {
+                        if (!rowItemsMap.get(row).contains(t)) {
+                            rowItemsMap.get(row).add(t);
+                        }
+                    } else {
+                        rowItemsMap.put(row, Arrays.asList(t));
+                    }
+                }
+            }
+        }
+    };
+
+    private final ListChangeListener<R> rowsListener = c -> {
+        while (c.next()) {
+            if (c.wasRemoved()) {
+                for (R row : c.getRemoved()) {
+                    rowItemsMap.remove(row);
+                }
+            }
+            if (c.wasAdded()) {
+                for (R row : c.getAddedSubList()) {
+                    rowItemsMap.putIfAbsent(row, new ArrayList<>());
                 }
             }
         }
@@ -212,27 +377,43 @@ public class GanttPane<S> extends Control {
 
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new GanttPaneSkin<S>(this);
+        return new GanttPaneSkin<>(this);
     }
 
-    private static final CssMetaData<GanttPane, DockPos> DOCK_POS =
-            new CssMetaData<GanttPane, DockPos>("-fx-dock-position",
-                    new EnumConverter<DockPos>(DockPos.class), DockPos.LEFT) {
+    private static final CssMetaData<GanttPane<?, ?>,Number> ROW_HEIGHT =
+            new CssMetaData<GanttPane<?, ?>,Number>("-fx-row-height",
+                    SizeConverter.getInstance(), 42.0d) {
 
                 @Override
-                public boolean isSettable(GanttPane n) {
+                public boolean isSettable(GanttPane<?, ?> ganttPane) {
+                    return ganttPane.rowHeight == null || !ganttPane.rowHeight.isBound();
+                }
+
+                @SuppressWarnings("unchecked")
+                @Override
+                public StyleableProperty<Number> getStyleableProperty(GanttPane ganttPane) {
+                    return (StyleableProperty<Number>)ganttPane.rowHeightProperty();
+                }
+            };
+
+    private static final CssMetaData<GanttPane<?, ?>, DockPos> DOCK_POS =
+            new CssMetaData<GanttPane<?, ?>, DockPos>("-fx-dock-position",
+                    new EnumConverter<>(DockPos.class), DockPos.LEFT) {
+
+                @Override
+                public boolean isSettable(GanttPane<?, ?> n) {
                     return n.dockPosition == null || !n.dockPosition.isBound();
                 }
 
                 @SuppressWarnings("unchecked")
                 @Override
-                public StyleableProperty<DockPos> getStyleableProperty(GanttPane n) {
+                public StyleableProperty<DockPos> getStyleableProperty(GanttPane<?, ?> n) {
                     return (StyleableProperty<DockPos>) n.dockPositionProperty();
                 }
             };
 
-    private static final CssMetaData<GanttPane, Boolean> TIMELINE_VISIBLE =
-            new CssMetaData<GanttPane, Boolean>("-fx-timeline-visible",
+    private static final CssMetaData<GanttPane<?, ?>, Boolean> TIMELINE_VISIBLE =
+            new CssMetaData<GanttPane<?, ?>, Boolean>("-fx-timeline-visible",
                     new StyleConverter<String, Boolean>() {
                         @Override
                         public Boolean convert(ParsedValue<String, Boolean> value, Font font) {
@@ -252,5 +433,4 @@ public class GanttPane<S> extends Control {
                     return (StyleableProperty<Boolean>) styleable.timelineVisibleProperty();
                 }
             };
-
 }

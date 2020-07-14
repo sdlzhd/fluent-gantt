@@ -1,50 +1,44 @@
 package com.dongdong.fx.gantt;
 
 import com.dongdong.fx.gantt.skin.GanttRowSkin;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Skin;
 
-import java.util.function.Consumer;
+public class GanttRow<R, T> extends ListCell<R> {
 
-public class GanttRow<S, T> extends ListCell<T> {
+    private final ReadOnlyObjectWrapper<GanttPane<R, T>> ganttPane = new ReadOnlyObjectWrapper<>(this, "ganttPane");
 
-
-    private final ReadOnlyObjectWrapper<GanttPane<S>> ganttPane = new ReadOnlyObjectWrapper<>(this, "ganttPane");
-
-    public GanttRow() {
+    public GanttRow(GanttPane<R, T> ganttPane) {
+        this.setGanttPane(ganttPane);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
     }
 
-    public GanttRow(String text) {
-        this();
-        setText(text);
+    /***************************************************************************
+     *                                                                         *
+     * Properties                                                              *
+     *                                                                         *
+     **************************************************************************/
+
+    private final ObservableList<T> items = FXCollections.observableArrayList();
+
+    public final ObservableList<T> getItems() {
+        return items;
     }
 
-    public final ReadOnlyObjectProperty<GanttPane<S>> ganttPaneProperty() {
+    public final ReadOnlyObjectProperty<GanttPane<R, T>> ganttPaneProperty() {
         return ganttPane.getReadOnlyProperty();
     }
 
-    final void setGanttPane(GanttPane<S> value) {
+    public final void setGanttPane(GanttPane<R, T> value) {
         ganttPane.set(value);
     }
 
-    public final GanttPane<S> getGanttPane() {
+    public final GanttPane<R, T> getGanttPane() {
         return ganttPane.get();
-    }
-
-    private final ObjectProperty<Consumer<DockButton<T>>> customDockButton =
-            new SimpleObjectProperty<>(this, "customDockButton");
-
-    public void setCustomDockButton(Consumer<DockButton<T>> consumer) {
-        customDockButton.setValue(consumer);
-    }
-
-    public Consumer<DockButton<T>> getCustomDockButton() {
-        return customDockButton.getValue();
     }
 
     /***************************************************************************
@@ -66,7 +60,13 @@ public class GanttRow<S, T> extends ListCell<T> {
      *                                                                         *
      **************************************************************************/
 
-
-
-
+    @Override
+    protected void updateItem(R item, boolean empty) {
+        super.updateItem(item, empty);
+        if (empty) {
+            setText(null);
+        } else {
+            setText(getGanttPane().getRowConverter().toString(item));
+        }
+    }
 }
