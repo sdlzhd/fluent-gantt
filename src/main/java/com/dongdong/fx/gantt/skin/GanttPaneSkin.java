@@ -1,8 +1,6 @@
 package com.dongdong.fx.gantt.skin;
 
-import com.dongdong.fx.gantt.GanttPane;
-import com.dongdong.fx.gantt.GanttRow;
-import com.dongdong.fx.gantt.TimeAxis;
+import com.dongdong.fx.gantt.*;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.control.Label;
@@ -10,9 +8,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.SkinBase;
 import javafx.scene.shape.Line;
 
-import java.util.Objects;
-
-public class GanttPaneSkin<R, T> extends SkinBase<GanttPane<R, T>> {
+public class GanttPaneSkin<R extends RowBase<T>, T extends NodeBase> extends SkinBase<GanttPane<R, T>> {
 
     private final GanttPane<R, T> ganttPane;
     private final Label title;

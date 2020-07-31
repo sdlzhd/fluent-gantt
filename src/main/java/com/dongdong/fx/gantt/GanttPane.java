@@ -4,7 +4,6 @@ import com.dongdong.fx.gantt.skin.GanttPaneSkin;
 import com.sun.javafx.css.converters.EnumConverter;
 import com.sun.javafx.css.converters.SizeConverter;
 import javafx.beans.property.*;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -21,22 +20,9 @@ import java.util.*;
  * @param <R> 甘特行的实体类
  * @param <T> 甘特节点的实体类
  */
-public class GanttPane<R, T> extends Control {
+public class GanttPane<R extends RowBase<T>, T extends NodeBase> extends Control {
 
-    private static <R> StringConverter<R> defaultStringConverter() {
-        return new StringConverter<R>() {
-            @Override public String toString(R t) {
-                return t == null ? null : t.toString();
-            }
-
-            @SuppressWarnings("unchecked")
-            @Override public R fromString(String string) {
-                return (R) string;
-            }
-        };
-    }
-
-    private static <R, T> Callback<GanttRow<R, T>, DockButton<R>> defaultDockFactory() {
+    private static <R extends RowBase<T>, T extends NodeBase> Callback<GanttRow<R, T>, DockButton<R>> defaultDockFactory() {
         return DockButton::new;
     }
 
@@ -46,6 +32,7 @@ public class GanttPane<R, T> extends Control {
         calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTime();
     }
 
@@ -55,6 +42,7 @@ public class GanttPane<R, T> extends Control {
         calendar.set(Calendar.HOUR_OF_DAY, 23);
         calendar.set(Calendar.MINUTE, 59);
         calendar.set(Calendar.SECOND, 59);
+        calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTime();
     }
 
@@ -82,16 +70,14 @@ public class GanttPane<R, T> extends Control {
 
     private final Map<R, List<T>> rowItemsMap = new HashMap<>();
 
+    List<T> getItems(R row) {
+        return rowItemsMap.get(row);
+    }
+
     /**
      * 甘特图中所有的行
      */
     private final ObservableList<R> rows = FXCollections.observableArrayList();
-
-    /**
-     * 行对象转换为行标题
-     */
-    private final ObjectProperty<StringConverter<R>> rowConverter =
-            new SimpleObjectProperty<>(this, "rowConverter", GanttPane.defaultStringConverter());
 
     private final ObjectProperty<Callback<GanttRow<R, T>, DockButton<R>>> dockFactory =
             new SimpleObjectProperty<>(this, "dockFactory", defaultDockFactory());
@@ -176,20 +162,6 @@ public class GanttPane<R, T> extends Control {
     public ObservableList<R> getRows() {
         return rows;
     }
-
-    public ObjectProperty<StringConverter<R>> rowConverterProperty() {
-        return rowConverter;
-    }
-
-    public StringConverter<R> getRowConverter() {
-        return rowConverter.get();
-    }
-
-    public void setRowConverter(StringConverter<R> converter) {
-        rowConverter.setValue(converter);
-    }
-
-
 
     public DoubleProperty rowHeightProperty() {
         if (rowHeight == null) {

@@ -8,7 +8,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Skin;
 
-public class GanttRow<R, T> extends ListCell<R> {
+public class GanttRow<R extends RowBase<T>, T extends NodeBase> extends ListCell<R> {
 
     private final ReadOnlyObjectWrapper<GanttPane<R, T>> ganttPane = new ReadOnlyObjectWrapper<>(this, "ganttPane");
 
@@ -43,6 +43,14 @@ public class GanttRow<R, T> extends ListCell<R> {
 
     /***************************************************************************
      *                                                                         *
+     * Callbacks and Events                                                    *
+     *                                                                         *
+     **************************************************************************/
+
+
+
+    /***************************************************************************
+     *                                                                         *
      * Stylesheet Handling                                                     *
      *                                                                         *
      **************************************************************************/
@@ -63,10 +71,12 @@ public class GanttRow<R, T> extends ListCell<R> {
     @Override
     protected void updateItem(R item, boolean empty) {
         super.updateItem(item, empty);
+        items.clear();
         if (empty) {
             setText(null);
         } else {
-            setText(getGanttPane().getRowConverter().toString(item));
+            setText(item.getTitle());
+            items.addAll(getGanttPane().getItems(this.getItem()));
         }
     }
 }

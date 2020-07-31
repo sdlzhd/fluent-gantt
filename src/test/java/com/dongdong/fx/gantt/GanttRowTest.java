@@ -1,5 +1,6 @@
 package com.dongdong.fx.gantt;
 
+import com.dongdong.fx.gantt.entity.Flight;
 import com.dongdong.fx.gantt.entity.PlaneSeat;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -36,7 +37,7 @@ public class GanttRowTest extends Application {
                 seat6, seat7, seat8, seat9, seat10,
                 seat11, seat12, seat13, seat14, seat15, seat16);
 
-        listView.setCellFactory(lv -> new GanttRow<PlaneSeat, Object>(null) {
+        listView.setCellFactory(lv -> new GanttRow<PlaneSeat, Flight>(null) {
             @Override
             protected void updateItem(PlaneSeat item, boolean empty) {
                 super.updateItem(item, empty);

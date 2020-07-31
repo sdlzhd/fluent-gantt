@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
+import org.apache.commons.lang3.RandomStringUtils;
 
 import java.util.*;
 
@@ -30,30 +31,23 @@ public class GanttTest extends Application {
         ganttPane.setValueBindFactory(Flight::getPlaneSeat);
 
         // 添加甘特行
-        ArrayList<PlaneSeat> planeSeats = getPlaneSeat();
+        List<PlaneSeat> planeSeats = new ArrayList<>();
+        getPlaneSeat(planeSeats);
         ganttPane.getRows().addAll(planeSeats);
-        // 设置甘特行对象显示规则
-        ganttPane.setRowConverter(new StringConverter<PlaneSeat>() {
-            @Override
-            public String toString(PlaneSeat object) {
-                return object.getName();
-            }
 
-            @Override
-            public PlaneSeat fromString(String string) {
-                return null;
-            }
-        });
+        // 添加甘特节点
+        List<Flight> flights = getFlights(planeSeats);
+        ganttPane.getItems().addAll(flights);
+
 
         borderPane.setCenter(ganttPane);
-        Scene scene = new Scene(borderPane, 1200, 800);
+        Scene scene = new Scene(borderPane, 800, 500);
         scene.getStylesheets().add("/gantt.css");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
-
-    private ArrayList<PlaneSeat> getPlaneSeat() {
+    private void getPlaneSeat(List<PlaneSeat> planeSeats) {
         PlaneSeat seat1 = new PlaneSeat("机位1");
         PlaneSeat seat2 = new PlaneSeat("机位2");
         PlaneSeat seat3 = new PlaneSeat("机位3");
@@ -71,9 +65,42 @@ public class GanttTest extends Application {
         PlaneSeat seat15 = new PlaneSeat("机位15");
         PlaneSeat seat16 = new PlaneSeat("机位16");
 
-        return new ArrayList<>(Arrays.asList(seat1, seat2, seat3, seat4, seat5,
+        planeSeats.clear();
+        planeSeats.addAll(Arrays.asList(seat1, seat2, seat3, seat4, seat5,
                 seat6, seat7, seat8, seat9, seat10,
                 seat11, seat12, seat13, seat14, seat15, seat16));
+    }
+
+    private List<Flight> getFlights(List<PlaneSeat> planeSeats) {
+        Random rand = new Random();
+        List<Flight> flights = new ArrayList<>();
+        for (int i = 0; i < 30; i++) {
+            flights.add(createFlight(planeSeats.get(rand.nextInt(16))));
+        }
+        return flights;
+    }
+
+
+    Random rand_hours = new Random(20);
+    Random rand_min = new Random(60);
+
+    private Flight createFlight(PlaneSeat planeSeat) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        calendar.set(Calendar.HOUR_OF_DAY, rand_hours.nextInt());
+        calendar.set(Calendar.MINUTE, rand_min.nextInt());
+        calendar.set(Calendar.SECOND, 0);
+
+        Flight flight = new Flight();
+        flight.setName(RandomStringUtils.randomAlphabetic(2) + RandomStringUtils.randomNumeric(4));
+
+        flight.setLandingTime(calendar.getTime());
+
+        calendar.add(Calendar.HOUR_OF_DAY, 1);
+        flight.setTakeOffTime(calendar.getTime());
+
+        flight.setPlaneSeat(planeSeat);
+        return flight;
     }
 
 }

@@ -1,8 +1,10 @@
 package com.dongdong.fx.gantt.entity;
 
+import com.dongdong.fx.gantt.NodeBase;
+
 import java.util.Date;
 
-public class Flight {
+public class Flight implements NodeBase {
     private String name;
     private Date landingTime;
     private Date takeOffTime;
@@ -38,5 +40,15 @@ public class Flight {
 
     public void setPlaneSeat(PlaneSeat planeSeat) {
         this.planeSeat = planeSeat;
+    }
+
+    @Override
+    public Date getStartDate() {
+        return getLandingTime();
+    }
+
+    @Override
+    public Date getEndDate() {
+        return getTakeOffTime();
     }
 }

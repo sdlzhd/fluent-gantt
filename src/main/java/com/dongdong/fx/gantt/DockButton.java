@@ -4,9 +4,9 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.control.Label;
 
-public class DockButton<S> extends Label {
+public class DockButton<R extends RowBase<?>> extends Label {
 
-    public DockButton(GanttRow<S, ?> ganttRow) {
+    public DockButton(GanttRow<R, ?> ganttRow) {
         getStyleClass().clear();
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setGanttRow(ganttRow);
@@ -14,17 +14,17 @@ public class DockButton<S> extends Label {
         graphicProperty().bind(ganttRow.graphicProperty());
     }
 
-    private final ObjectProperty<GanttRow<S, ?>> ganttRow = new SimpleObjectProperty<>();
+    private final ObjectProperty<GanttRow<R, ?>> ganttRow = new SimpleObjectProperty<>();
 
-    final void setGanttRow(GanttRow<S, ?> value) {
+    final void setGanttRow(GanttRow<R, ?> value) {
         ganttRow.setValue(value);
     }
 
-    public GanttRow<S, ?> getGanttRow() {
+    public GanttRow<R, ?> getGanttRow() {
         return ganttRow.get();
     }
 
-    public ObjectProperty<GanttRow<S, ?>> ganttRowProperty() {
+    public ObjectProperty<GanttRow<R, ?>> ganttRowProperty() {
         return ganttRow;
     }
 
