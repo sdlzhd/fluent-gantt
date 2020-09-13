@@ -12,6 +12,7 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Region;
 
+import java.util.Date;
 import java.util.stream.Collectors;
 
 public class GanttRowSkin<R extends RowBase<T>, T extends NodeBase> extends SkinBase<GanttRow<R, T>> {
@@ -45,11 +46,34 @@ public class GanttRowSkin<R extends RowBase<T>, T extends NodeBase> extends Skin
         double w = dockButton.prefWidth(-1);
         layoutInArea(dockButton, 0, 0, w, h, 0, HPos.LEFT, VPos.CENTER);
         layoutInArea(track, w, 0, ganttRow.getWidth() - w, h, 0, HPos.LEFT, VPos.CENTER);
-        ganttRow.getItem().getChildren().forEach(n -> {
-            long startTime = n.getEndDate().getTime();
-            long endTime = n.getStartDate().getTime();
-            layoutInArea(new Region(), startTime, 0, endTime - startTime, 40, 0, HPos.LEFT, VPos.CENTER);
-        });
+        Date ganttStartDate = this.ganttPane.getStartTime();
+        Date ganttEndDate = this.ganttPane.getEndTime();
+
+        for (T node : ganttRow.getItem().getChildren()) {
+            Date nodeStartDate = node.getStartDate();
+            Date nodeEndDate = node.getEndDate();
+            // 忽略如下情况的节点
+            // 节点开始时间>当前面板结束时间
+            // 节点结束时间<当前面板开始时间
+            if (nodeEndDate.before(ganttStartDate) || nodeStartDate.after(ganttEndDate)) {
+                continue;
+            }
+            double offsetX = (double) (nodeStartDate.getTime() - ganttStartDate.getTime()) / (nodeEndDate.getTime() - ganttEndDate.getTime())
+                    * track.getWidth();
+            layoutInArea(new Region(), offsetX, 0, calcNodeWidth(node), 40, 0, HPos.LEFT, VPos.CENTER);
+        }
+    }
+
+    /**
+     * 计算GanttNode的宽度
+     */
+    private double calcNodeWidth(T node) {
+        long ganttStartMillis = this.ganttPane.getStartTime().getTime();
+        long ganttEndMillis = this.ganttPane.getEndTime().getTime();
+        double ganttWidth = track.getWidth();
+        long nodeStartMillis = node.getStartDate().getTime();
+        long nodeEndMillis = node.getStartDate().getTime();
+        return (double) (nodeEndMillis - nodeStartMillis) / (ganttEndMillis - ganttStartMillis) * ganttWidth;
     }
 
     private EventHandler<DragEvent> dragOverEvent = event -> {
